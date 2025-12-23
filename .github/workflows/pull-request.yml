@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - master
+      - default
     types: ["opened", "edited", "reopened", "synchronize"]
 
 permissions:
