@@ -55,6 +55,13 @@ outputs:
 runs:
   using: "composite"
   steps:
+    # Searches for Linear issue identifiers (e.g., TEAM-123) in:
+    # - PR branch name: 
+    #     * Supports the format {prefix}/{team-key}-{issue-number}-{description}
+    #     * Examples: feat/hyp-1342-earn-copy, feature/hyp-1241-add-indexer-prices
+    # - PR title
+    # - PR body
+    # Searches across all teams in the Linear workspace using regex patterns
     - name: Find the Linear Issue.
       continue-on-error: true
       id: find
@@ -78,7 +85,6 @@ runs:
         linear-issue-label-ids: ${{inputs.linear-issue-label-ids}}
         linear-issue-project-ids: ${{inputs.linear-project-id}}
     - name: Prepend the title with the Linear issue identifier.
-      # Not enforcing that the found or created task is at the start for in the case of multiple tasks in the title.
       if: ${{!contains(github.event.pull_request.title, steps.find.outputs.linear-issue-identifier || steps.create.outputs.linear-issue-identifier)}}
       shell: bash
       env:
