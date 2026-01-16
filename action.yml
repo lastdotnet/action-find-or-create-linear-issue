@@ -68,11 +68,11 @@ runs:
       uses: lastdotnet/action-find-linear-issue@v1.1.0
       with:
         linear-api-key: ${{inputs.linear-api-key}}
-        linear-issue-label-ids: ${{inputs.linear-issue-label-ids}}
-        linear-project-ids: ${{inputs.linear-project-id}}
+    # Only create a new issue if find failed AND this is an opened event
+    # (to avoid creating duplicate issues on edited/reopened/synchronize events)
     - name: Create the Linear Issue if no identifier found.
       id: create
-      if: ${{always() && steps.find.outcome == 'failure'}}
+      if: ${{always() && steps.find.outcome == 'failure' && github.event.action == 'opened'}}
       uses: lastdotnet/action-create-linear-issue@v1.1.1
       with:
         linear-api-key: ${{inputs.linear-api-key}}
@@ -85,7 +85,7 @@ runs:
         linear-issue-label-ids: ${{inputs.linear-issue-label-ids}}
         linear-issue-project-ids: ${{inputs.linear-project-id}}
     - name: Prepend the title with the Linear issue identifier.
-      if: ${{!contains(github.event.pull_request.title, steps.find.outputs.linear-issue-identifier || steps.create.outputs.linear-issue-identifier)}}
+      if: ${{steps.find.outcome == 'success' || steps.create.outcome == 'success'}}
       shell: bash
       env:
         PR_URL: ${{github.event.pull_request.html_url}}
@@ -93,4 +93,7 @@ runs:
         ISSUE_IDENTIFIER: ${{ steps.find.outputs.linear-issue-identifier || steps.create.outputs.linear-issue-identifier}}
         GITHUB_TOKEN: ${{inputs.github-token}}
       run: |
-        gh pr edit "$PR_URL" --title "$ISSUE_IDENTIFIER: $PR_TITLE"
+        # Only prepend if the identifier is not already in the title
+        if [[ ! "$PR_TITLE" =~ $ISSUE_IDENTIFIER ]]; then
+          gh pr edit "$PR_URL" --title "$ISSUE_IDENTIFIER: $PR_TITLE"
+        fi
